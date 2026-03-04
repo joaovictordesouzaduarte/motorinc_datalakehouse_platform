@@ -58,3 +58,8 @@ DMS writes to S3 in a partitioned structure (e.g. by year, month, day, hour). Th
 3. **Athena** (or any tool that uses the Glue catalog) can then query `raw`, `ods`, and `dwh` tables for reporting and ad‑hoc analysis.
 
 The dbt project lives in the `motorinc_dlh` folder; the Docker image packages it plus a run script and a dbt profile that reads connection settings from environment variables. See [docker/README.md](docker/README.md) for building the image, pushing to ECR, and running it on ECS.
+
+
+
+![image_1](images/image_1.png)
+![image_2](images/image_2.png)
