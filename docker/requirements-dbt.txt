@@ -1,0 +1,3 @@
+# dbt-core and Athena adapter for ECS
+dbt-core>=1.11.0,<1.12
+dbt-athena-community>=1.10.0,<1.11

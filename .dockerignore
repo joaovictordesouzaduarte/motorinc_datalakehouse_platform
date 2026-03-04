@@ -1,0 +1,18 @@
+# Dependencies and build artifacts
+.venv
+.cursor
+.env
+*.pyc
+__pycache__
+.git
+.gitignore
+
+# dbt
+motorinc_dlh/target
+motorinc_dlh/dbt_packages
+motorinc_dlh/logs
+*.log
+
+# Misc
+*.parquet
+*.metadata.json

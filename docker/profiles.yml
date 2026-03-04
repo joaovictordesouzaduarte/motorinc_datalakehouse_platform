@@ -1,0 +1,24 @@
+# Profile for dbt-athena. Uses env vars so the same file works in ECS (task role) or local (mount your own to override).
+# Required env vars: AWS_REGION, S3_STAGING_DIR
+# Optional: ATHENA_WORK_GROUP (default: primary), DBT_THREADS (default: 4)
+motorinc_dlh:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+      work_group: "{{ env_var('ATHENA_WORK_GROUP', 'data-viz') }}"
+      s3_staging_dir: "{{ env_var('S3_STAGING_DIR', 's3://aws-athena-query-results-us-east-1-086997587178-sandbox-dlh/dbt/') }}"
+      region_name: "{{ env_var('AWS_REGION', 'us-east-1') }}"
+      database: awsdatacatalog
+      schema: "{{ env_var('ATHENA_SCHEMA', 'raw') }}"
+      models:
+        motorinc_dlh:
+          bronze:
+            +schema: raw
+            +s3_data_dir: s3://datalake-1-bronze-us-east-1-086997587178-sandbox-dlh/
+          silver:
+            +schema: ods
+            +s3_data_dir: s3://datalake-2-silver-us-east-1-086997587178-sandbox-dlh/
+          gold:
+            +schema: dwh
+            +s3_data_dir: s3://datalake-3-gold-us-east-1-086997587178-sandbox-dlh/
