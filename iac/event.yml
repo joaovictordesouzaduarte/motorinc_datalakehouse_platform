@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template CF para o serviço eventbridge - evt-cf-us-east-1-086997587178-sandbox-dlh
+
+# Metadata: 
+
+Parameters: 
+  pExportRolesStackName:
+    Default: roles-cf-us-east-1-086997587178-sandbox-dlh
+    Description: The name of the iam roles stack that exports values
+    Type: String    
+
+  pExportVpcStackName:
+    Default: vpc-cf-us-east-1-086997587178-sandbox-dlh
+    Description: The name of the vpc stack that exports values
+    Type: String    
+
+  pEnv:
+    Default: sandbox
+    Description: The custom Env to stack
+    Type: String
+
+  pSolution:
+    Default: dlh
+    Description: The custom Env to stack
+    Type: String
+
+# Mappings: 
+
+#Conditions: 
+
+Resources:
+  EventsScheduler:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      FlexibleTimeWindow: 
+        Mode: "OFF"
+      Name: dbt_container_main_main_dwh_sales_workflow_scheduler
+      ScheduleExpression: cron(0/15 * * * ? *)
+      ScheduleExpressionTimezone: America/Sao_Paulo
+      State: ENABLED 
+      Target: 
+        Arn: arn:aws:ecs:us-east-1:086997587178:cluster/dbt-cluster-cf-us-east-1-086997587178-sandbox-dlh
+        EcsParameters: 
+          LaunchType: FARGATE
+          NetworkConfiguration: 
+            AwsvpcConfiguration: 
+              AssignPublicIp: ENABLED
+              SecurityGroups: 
+                - sg-0b11200b3d99fa074
+              Subnets: 
+              - subnet-0841597260b518462 #(us-east-1a) (Trocar pelo id da subnet da região A da sua VPC default)
+              - subnet-04e94d118d801803f #(us-east-1b) (Trocar pelo id da subnet da região B da sua VPC default)
+          PlatformVersion: LATEST
+          TaskCount: 1
+          TaskDefinitionArn: arn:aws:ecs:us-east-1:086997587178:task-definition/dbt-task-cf-us-east-1-086997587178-sandbox-dlh:4   
+        RetryPolicy: 
+          MaximumRetryAttempts: 0
+        RoleArn: !ImportValue
+          'Fn::Sub': '${pExportRolesStackName}-oIAMRoleScheduler'
+
+#Outputs:

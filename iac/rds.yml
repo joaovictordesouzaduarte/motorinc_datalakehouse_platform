@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template CF para a custom RDS PostgreSQL 17.4 - rds-cf-us-east-1-340623154105-sandbox-dlh
+
+Parameters: 
+  pEnv:
+    Default: sandbox  
+    Description: The custom Env to stack
+    Type: String
+
+  pSolution:
+    Default: dlh  
+    Description: The custom Solution to stack
+    Type: String    
+
+  pDBName:
+    Default: motorinc_oltp
+    Description: The database name
+    Type: String
+  # pDBUsername:
+  #   Default: postgres
+  #   Description: The database username
+  #   Type: String
+  # pDBPassword:
+  #   Default: =xPZr:mTDRI.G,M8
+  #   Description: The database password
+  #   Type: String
+
+
+Resources: 
+  PostgreSQLSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub secret-oltp-postgres-17-4-rds-${AWS::Region}-${AWS::AccountId}-${pEnv}-${pSolution}
+      Description: "Secrets Manager secret for RDS PostgreSQL instance"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "postgres"}'
+        GenerateStringKey: "password" # gera senha aleatoria
+        PasswordLength: 16
+        ExcludeCharacters: '";+%@/\\'
+
+  rdsDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.small
+      BackupRetentionPeriod: 0
+      DBInstanceIdentifier: !Sub oltp-postgres-17-4-rds-${AWS::Region}-${AWS::AccountId}-${pEnv}-${pSolution}
+      DBName: !Ref pDBName
+      DBParameterGroupName: !Ref rdsDBParameterGroup
+      DBSubnetGroupName: !Ref rdsDBSubnetGroup
+      Engine: postgres
+      EngineVersion: 17.4 #https://docs.aws.amazon.com/AmazonRDS/latest/PostgreSQLReleaseNotes/postgresql-release-calendar.html
+      MasterUsername: !Sub '{{resolve:secretsmanager:${PostgreSQLSecret}::username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${PostgreSQLSecret}::password}}'
+      MultiAZ: false
+      PubliclyAccessible: true
+      VPCSecurityGroups: 
+        - sg-0b11200b3d99fa074 #(Trocar pelo id do seu Security Group da sua VPC default)
+      StorageType: gp3        
+
+  rdsDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub Subnet group for RDS database in ${pEnv} for ${pSolution}
+      SubnetIds:
+        - subnet-0841597260b518462 #(us-east-1a) (Trocar pelo id da subnet da região A da sua VPC default)
+        - subnet-04e94d118d801803f #(us-east-1b) (Trocar pelo id da subnet da região B da sua VPC default)
+
+  rdsDBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: !Sub DB Parameter Group for RDS database in ${pEnv} for ${pSolution}
+      Family: postgres17
+      Parameters:
+        rds.logical_replication: 1
+        rds.log_retention_period: 1440 
+
+Outputs:
+  # Export Secret ARN
+  oSecretARN:
+      Description: 'ARN of the Secrets Manager secret for PostgreSQL instance'
+      Value: !Ref PostgreSQLSecret
+      Export:
+        Name: !Sub '${AWS::StackName}-oSecretARN'
+      #Usado na stack  dms
+      #para saber a senha gerada precisa acessar a console do Secrets manager
+
+  # Export RDS 
+  oRDSDBInstanceEndpoint:
+      Description: 'The connection endpoint for the database.'
+      Value: !GetAtt 'rdsDBInstance.Endpoint.Address'
+      Export:
+        Name: !Sub '${AWS::StackName}-oRDSDBInstanceEndpoint'
+      #Usado na stack dms              
+
