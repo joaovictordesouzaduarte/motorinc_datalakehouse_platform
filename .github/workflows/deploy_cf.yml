@@ -1,0 +1,143 @@
+name: 'Deploy to CloudFormation'
+on: 
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest #https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners
+
+    if: "!contains(github.event.head_commit.message, '[skip ci]')" 
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 #https://github.com/actions/checkout
+
+      #Configure AWS Credential
+      - name: Step Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4 #about https://github.com/marketplace/actions/configure-aws-credentials-action-for-github-actions
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+          aws-region: ${{ vars.AWS_DEFAULT_REGION }}
+
+      # Deploy S3 Bucket
+      - name: Action AWS CloudFormation "Deploy CloudFormation S3 Stack"
+        if: "contains(github.event.head_commit.message, '[s3]')" #Runs if commit message contains [s3]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1 #https://github.com/marketplace/actions/aws-cloudformation-deploy-cloudformation-stack-action-for-github-actions
+        with:
+          name: s3-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: s3.yml
+          no-fail-on-empty-changeset: 1
+          parameter-overrides: >-
+            pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }}  
+      
+      # Deploy RDS
+      - name: Action AWS CloudFormation "Deploy CloudFormation RDS Stack"
+        if: "contains(github.event.head_commit.message, '[rds]')" # Runs if commit message contains [rds]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1 #https://github.com/marketplace/actions/aws-cloudformation-deploy-cloudformation-stack-action-for-github-actions
+        with:
+          name: rds-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: rds.yml
+          no-fail-on-empty-changeset: 1      
+          parameter-overrides: >-
+            pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }}  
+             
+      # Deploy IAM
+      - name: Action AWS CloudFormation "Deploy CloudFormation IAM Roles Stack" #in ${{ steps.branch-name-generator.outputs.BRANCH_NAME }} branch
+        if: "contains(github.event.head_commit.message, '[roles]')" #Runs if commit message contains [roles]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: roles-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: iam_roles.yml
+          no-fail-on-empty-changeset: 1
+          capabilities: CAPABILITY_NAMED_IAM  
+          parameter-overrides: >-
+            pExportSecretStackName=rds-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }}
+        
+        # Deploy CloudFormation DMS Stack
+      - name: Action AWS CloudFor'mation "Deploy CloudFormation DMS Stack" #in ${{ steps.branch-name-generator.outputs.BRANCH_NAME }} branch
+        if: "contains(github.event.head_commit.message, '[dms]')" #Runs if commit message contains [dms]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: dms-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: dms.yml
+          no-fail-on-empty-changeset: 1
+          parameter-overrides: >-
+            pExportS3StackName=s3-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pExportRdsStackName=rds-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pExportRolesStackName=roles-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}            
+            ,pExportSecretStackName=rds-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }}
+
+      # Deploy CloudFormation Glue Stack
+      - name: Action AWS CloudFormation "Deploy CloudFormation Glue Stack" #in ${{ steps.branch-name-generator.outputs.BRANCH_NAME }} branch
+        if: "contains(github.event.head_commit.message, '[glue]')" #Runs if commit message contains [glue]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: glue-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: glue.yml
+          no-fail-on-empty-changeset: 1
+          parameter-overrides: >-
+            pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }} 
+      
+      # Deploy CloudFormation Athena Stack
+      - name: Action AWS CloudFormation "Deploy CloudFormation Athena Stack" #in ${{ steps.branch-name-generator.outputs.BRANCH_NAME }} branch
+        if: "contains(github.event.head_commit.message, '[athena]')" #Runs if commit message contains [athena]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: athena-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: athena.yml
+          no-fail-on-empty-changeset: 1
+          parameter-overrides: >-
+            pExportS3StackName=s3-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }}
+      
+      
+      # Deploy CloudFormation IAM Users Stack
+      - name: Action AWS CloudFormation "Deploy CloudFormation IAM Users Stack"
+        if: "contains(github.event.head_commit.message, '[users]')" #Runs if commit message contains [users]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: users-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: iam_users.yml
+          no-fail-on-empty-changeset: 1
+          capabilities: CAPABILITY_NAMED_IAM
+          parameter-overrides: >-
+            pExportRdsStackName=rds-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pExportS3StackName=s3-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pExportGlueStackName=glue-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pExportAthenaStackName=athena-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+            ,pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }} 
+
+      - name: Action AWS CloudFormation "Deploy CloudFormation Container Stack" #in ${{ steps.branch-name-generator.outputs.BRANCH_NAME }} branch
+        if: "contains(github.event.head_commit.message, '[container]')" #Runs if commit message contains [container]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: container-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: container.yml
+          no-fail-on-empty-changeset: 1
+          capabilities: CAPABILITY_NAMED_IAM
+          parameter-overrides: >-
+            pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }}
+
+      # Deploy CloudFormation EventBridge Stack
+      - name: Action AWS CloudFormation "Deploy CloudFormation EventBridge Stack"
+        if: "contains(github.event.head_commit.message, '[event]')" # Runs if commit message contains [event]
+        uses: aws-actions/aws-cloudformation-github-deploy@v1 #https://github.com/marketplace/actions/aws-cloudformation-deploy-cloudformation-stack-action-for-github-actions
+        with:
+          name: evt-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
+          template: event.yml
+          no-fail-on-empty-changeset: 1
+          parameter-overrides: >-
+            pExportRolesStackName=roles-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}            
+            ,pEnv=${{ vars.AWS_ENV }}
+            ,pSolution=${{ vars.AWS_SOLUTION }}                                

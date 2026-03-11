@@ -4,14 +4,14 @@ import time
 from datetime import datetime, timedelta
 import logging
 
-# Configuração de logging
+# Logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Configurações de conexão com o banco de dados PostgreSQL
+# PostgreSQL database connection settings
 DB_CONFIG = {
     'host': os.getenv('AWS_DB_HOST'),
     'database': 'motorinc_oltp',
@@ -20,7 +20,7 @@ DB_CONFIG = {
     'port': os.getenv('AWS_DB_PORT'),
 }
 
-# Valores possíveis para customernumber
+# Possible values for customernumber
 CUSTOMER_NUMBERS = [
     103, 112, 114, 119, 121, 124, 128, 129, 131,
     141, 144, 145, 146, 148, 151, 157, 161, 166,
@@ -36,7 +36,7 @@ CUSTOMER_NUMBERS = [
     496
 ]
 
-# Valores possíveis para productcode e priceeach
+# Possible values for productcode and priceeach
 PRODUCT_PRICES = {
     1514: 69.00,
     2011: 147.00,
@@ -50,49 +50,49 @@ PRODUCT_PRICES = {
     4675: 122.00
 }
 
-# Comentários padrão para o campo comments
+# Default comment values for the comments field
 COMMENTS = [
-    "Cliente solicitou embalagem para presente.",
-    "Entrega prioritária solicitada.",
-    "Cliente é recorrente, verificar possibilidade de desconto em compras futuras.",
-    "Entrega em endereço comercial.",
-    "Cliente solicitou contato antes da entrega.",
-    "Pagamento confirmado, liberar envio imediato.",
-    "Verificar disponibilidade de estoque antes de confirmar pedido.",
-    "Cliente solicitou nota fiscal em nome da empresa.",
-    "Aguardando confirmação de pagamento para processamento.",
-    "Entrega em condomínio, avisar portaria.",
-    "Produto para colecionador, verificar qualidade da embalagem.",
-    "Cliente solicitou seguro adicional para o envio.",
-    "Entregar somente ao destinatário.",
-    "Cliente é VIP, priorizar atendimento.",
-    None  # Possibilidade de não ter comentário
+    "Customer requested gift wrapping.",
+    "Priority delivery requested.",
+    "Returning customer, check possibility of discount on future purchases.",
+    "Delivery to commercial address.",
+    "Customer requested contact before delivery.",
+    "Payment confirmed, release for immediate shipping.",
+    "Check stock availability before confirming order.",
+    "Customer requested invoice in company name.",
+    "Awaiting payment confirmation for processing.",
+    "Delivery to gated community, notify reception.",
+    "Collector's item, verify packaging quality.",
+    "Customer requested additional shipping insurance.",
+    "Deliver only to the recipient.",
+    "VIP customer, prioritize service.",
+    None  # Order may have no comment
 ]
 
 class OrderGenerator:
     def __init__(self, connection_params):
         self.conn = None
         self.connection_params = connection_params
-        self.current_order_number = None  # Será definido no método generate_order
+        self.current_order_number = None  # Will be set in the generate_order method
     
     def connect(self):
-        """Estabelece conexão com o banco de dados"""
+        """Establishes a connection to the database"""
         try:
             self.conn = psycopg2.connect(**self.connection_params)
-            logger.info("Conexão estabelecida com o banco de dados.")
+            logger.info("Database connection established.")
             return True
         except Exception as e:
-            logger.error(f"Erro ao conectar ao banco de dados: {e}")
+            logger.error(f"Error connecting to the database: {e}")
             return False
     
     def disconnect(self):
-        """Encerra a conexão com o banco de dados"""
+        """Closes the database connection"""
         if self.conn:
             self.conn.close()
-            logger.info("Conexão com o banco de dados encerrada.")
+            logger.info("Database connection closed.")
     
     def _get_next_order_number(self):
-        """Recupera o próximo número de pedido disponível"""
+        """Retrieves the next available order number"""
         try:
             cursor = self.conn.cursor()
             cursor.execute("SELECT MAX(ordernumber) FROM public.orders")
@@ -100,58 +100,58 @@ class OrderGenerator:
             cursor.close()
             
             if result[0] is not None:
-                # Adiciona 1 ao maior número de pedido encontrado
+                # Adds 1 to the highest order number found
                 return result[0] + 30
-            return 10000  # Valor inicial se a tabela estiver vazia
+            return 10000  # Initial value if the table is empty
         except Exception as e:
-            logger.error(f"Erro ao recuperar próximo número de pedido: {e}")
+            logger.error(f"Error retrieving next order number: {e}")
             return 10000
     
     def _is_order_number_available(self, order_number):
-        """Verifica se um número de pedido já existe no banco de dados"""
+        """Checks if an order number already exists in the database"""
         try:
             cursor = self.conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM public.orders WHERE ordernumber = %s", (order_number,))
             result = cursor.fetchone()
             cursor.close()
             
-            # Se o contador for 0, o número está disponível
+            # If the count is 0, the number is available
             return result[0] == 0
         except Exception as e:
-            logger.error(f"Erro ao verificar disponibilidade do número de pedido: {e}")
+            logger.error(f"Error checking order number availability: {e}")
             return False
     
     def generate_order(self):
-        """Gera um novo pedido e seus detalhes"""
+        """Generates a new order and its details"""
         try:
             if not self.connect():
                 return False
             
-            # Obtém o próximo número de pedido disponível
+            # Gets the next available order number
             next_order_number = self._get_next_order_number()
             
-            # Verifica se o número está realmente disponível para garantir
+            # Verifies the number is truly available to ensure uniqueness
             while not self._is_order_number_available(next_order_number):
-                logger.warning(f"Número de pedido {next_order_number} já existe. Tentando o próximo.")
+                logger.warning(f"Order number {next_order_number} already exists. Trying the next one.")
                 next_order_number += 1
             
-            # Define o número do pedido
+            # Sets the order number
             self.current_order_number = next_order_number
             
-            # Informações do pedido
+            # Order information
             order_date = datetime.now()
-            # Definindo a data requerida com a parte do horário zerada
+            # Setting the required date with the time part zeroed out
             required_date = (order_date + timedelta(days=random.randint(5, 10))).replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
-            # O campo shippeddate deve ser sempre nulo
+            # The shippeddate field must always be null
             shipped_date = None
-            # O campo status deve ser sempre "In Process"
+            # The status field must always be "In Process"
             status = "In Process"
             comments = random.choice(COMMENTS)
             customer_number = random.choice(CUSTOMER_NUMBERS)
             
-            # Inserir o pedido na tabela orders
+            # Insert the order into the orders table
             cursor = self.conn.cursor()
             cursor.execute(
                 """
@@ -162,17 +162,17 @@ class OrderGenerator:
                 (self.current_order_number, order_date, required_date, shipped_date, status, comments, customer_number)
             )
             
-            # Número de itens no pedido (entre 1 e 5)
+            # Number of items in the order (between 1 and 5)
             num_items = random.randint(1, 5)
             
-            # Seleciona produtos aleatórios para o pedido (sem repetição)
+            # Selects random products for the order (without repetition)
             selected_products = random.sample(list(PRODUCT_PRICES.keys()), min(num_items, len(PRODUCT_PRICES)))
             
-            # Inserir os detalhes do pedido
+            # Insert the order details
             for index, product_code in enumerate(selected_products, 1):
                 quantity = random.randint(1, 5)
                 price_each = PRODUCT_PRICES[product_code]
-                order_line_number = index  # Número sequencial para cada linha do pedido
+                order_line_number = index  # Sequential number for each order line
                 
                 cursor.execute(
                     """
@@ -183,45 +183,45 @@ class OrderGenerator:
                     (self.current_order_number, product_code, quantity, price_each, order_line_number)
                 )
             
-            # Confirma a transação
+            # Commits the transaction
             self.conn.commit()
             cursor.close()
             
-            logger.info(f"Pedido #{self.current_order_number} gerado com sucesso com {len(selected_products)} produtos.")
+            logger.info(f"Order #{self.current_order_number} successfully generated with {len(selected_products)} products.")
             return True
         
         except Exception as e:
             if self.conn:
                 self.conn.rollback()
-            logger.error(f"Erro ao gerar pedido: {e}")
+            logger.error(f"Error generating order: {e}")
             return False
         
         finally:
             self.disconnect()
 
 def run_order_generator():
-    """Executa o gerador de pedidos continuamente"""
+    """Runs the order generator continuously"""
     generator = OrderGenerator(DB_CONFIG)
     
-    logger.info("Iniciando o gerador de pedidos...")
+    logger.info("Starting the order generator...")
     
     try:
         while True:
-            # Gera um novo pedido
+            # Generates a new order
             success = generator.generate_order()
             
             if success:
-                # Aguarda um tempo aleatório entre 10 e 20 segundos
+                # Waits a random time between 20 and 60 seconds
                 wait_time = random.randint(20, 60)
-                logger.info(f"Aguardando {wait_time} segundos para o próximo pedido...")
+                logger.info(f"Waiting {wait_time} seconds until the next order...")
                 time.sleep(wait_time)
             else:
-                # Se houver falha, aguarda 30 segundos antes de tentar novamente
-                logger.warning("Falha ao gerar pedido. Tentando novamente em 30 segundos...")
+                # If there is a failure, waits 30 seconds before retrying
+                logger.warning("Failed to generate order. Retrying in 30 seconds...")
                 time.sleep(3)
     
     except KeyboardInterrupt:
-        logger.info("Gerador de pedidos interrompido pelo usuário.")
+        logger.info("Order generator stopped by the user.")
 
 if __name__ == "__main__":
     run_order_generator()

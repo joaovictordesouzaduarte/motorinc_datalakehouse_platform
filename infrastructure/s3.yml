@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template for S3 - s3-cf-us-east-1-340623154105-sandbox-dlh
+
+Parameters: 
+  pEnv:
+    Default: sandbox
+    Description: The custom Env to stack
+    Type: String 
+
+  pSolution:
+    Default: dlh
+    Description: The custom Env to stack
+    Type: String
+
+Resources: 
+  rS3BucketBronze:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub datalake-1-bronze-${AWS::Region}-${AWS::AccountId}-${pEnv}-${pSolution}
+      LifecycleConfiguration: 
+          Rules: 
+            - 
+              Id: "FrequencyTransition"
+              Status: "Enabled"
+              Transitions: 
+                - 
+                  TransitionInDays: 30
+                  StorageClass: "STANDARD_IA"
+                - 
+                  TransitionInDays: 90
+                  StorageClass: "ONEZONE_IA"
+                - 
+                  TransitionInDays: 180
+                  StorageClass: "GLACIER"      
+
+  rS3BucketSilver:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub datalake-2-silver-${AWS::Region}-${AWS::AccountId}-${pEnv}-${pSolution}
+
+  rS3BucketGold:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub datalake-3-gold-${AWS::Region}-${AWS::AccountId}-${pEnv}-${pSolution}
+
+  rS3BucketAthena:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub aws-athena-query-results-${AWS::Region}-${AWS::AccountId}-${pEnv}-${pSolution}
+      LifecycleConfiguration: 
+          Rules: 
+            - 
+              Id: "PurgeOutput"
+              Status: "Enabled"
+              ExpirationInDays: 1      
+
+  rS3BucketConfig:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub aws-config-${AWS::Region}-${AWS::AccountId}-${pEnv}-${pSolution}              
+
+Outputs:
+  oS3BucketNameBronze:
+    Value: !Ref rS3BucketBronze
+    Description: Name of Amazon S3 bucket to bronze zone data
+    Export:
+      Name: !Sub ${AWS::StackName}-oS3BucketNameBronze #exported to iam_users
+
+  oS3BucketNameSilver:
+    Value: !Ref rS3BucketSilver
+    Description: Name of Amazon S3 bucket to silver zone data
+    Export:
+      Name: !Sub ${AWS::StackName}-oS3BucketNameSilver #exported to iam_users
+
+  oS3BucketNameGold:
+    Value: !Ref rS3BucketGold
+    Description: Name of Amazon S3 bucket to gold zone data
+    Export:
+      Name: !Sub ${AWS::StackName}-oS3BucketNameGold #exported to iam_users
+
+  oS3BucketNameAthena:
+    Value: !Ref rS3BucketAthena
+    Description: Name of Amazon S3 bucket to athena result location data    
+    Export:
+      Name: !Sub ${AWS::StackName}-oS3BucketNameAthena #exported to iam_users          
