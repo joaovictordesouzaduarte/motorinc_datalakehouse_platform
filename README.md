@@ -6,6 +6,11 @@ This repository implements a **data lakehouse** on AWS: transactional data is re
 
 ## Architecture
 
+### QuickSight Dashboard
+
+The gold layer feeds an Amazon QuickSight dashboard that visualizes sales KPIs. The dashboard below shows total quantity ordered (24.62K) broken down by country (donut chart) and sales amount by territory and city (stacked bar chart), covering regions such as NA, Japan, EMEA, and APAC.
+
+![QuickSight Dashboard](screenshot_quicksight.png)
 
 | Layer | Service | Description |
 |-------|---------|-------------|
