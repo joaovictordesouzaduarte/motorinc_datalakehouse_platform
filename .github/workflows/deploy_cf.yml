@@ -27,7 +27,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1 #https://github.com/marketplace/actions/aws-cloudformation-deploy-cloudformation-stack-action-for-github-actions
         with:
           name: s3-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: s3.yml
+          template: infrastructure/s3.yml
           no-fail-on-empty-changeset: 1
           parameter-overrides: >-
             pEnv=${{ vars.AWS_ENV }}
@@ -41,7 +41,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1 #https://github.com/marketplace/actions/aws-cloudformation-deploy-cloudformation-stack-action-for-github-actions
         with:
           name: rds-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: rds.yml
+          template: infrastructure/rds.yml
           no-fail-on-empty-changeset: 1      
           parameter-overrides: >-
             pEnv=${{ vars.AWS_ENV }}
@@ -53,7 +53,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: roles-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: iam_roles.yml
+          template: infrastructure/iam_roles.yml
           no-fail-on-empty-changeset: 1
           capabilities: CAPABILITY_NAMED_IAM  
           parameter-overrides: >-
@@ -67,7 +67,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: dms-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: dms.yml
+          template: infrastructure/dms.yml
           no-fail-on-empty-changeset: 1
           parameter-overrides: >-
             pExportS3StackName=s3-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
@@ -83,7 +83,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: glue-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: glue.yml
+          template: infrastructure/glue.yml
           no-fail-on-empty-changeset: 1
           parameter-overrides: >-
             pEnv=${{ vars.AWS_ENV }}
@@ -95,7 +95,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: athena-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: athena.yml
+          template: infrastructure/athena.yml
           no-fail-on-empty-changeset: 1
           parameter-overrides: >-
             pExportS3StackName=s3-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
@@ -109,7 +109,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: users-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: iam_users.yml
+          template: infrastructure/iam_users.yml
           no-fail-on-empty-changeset: 1
           capabilities: CAPABILITY_NAMED_IAM
           parameter-overrides: >-
@@ -125,7 +125,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: container-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: container.yml
+          template: infrastructure/container.yml
           no-fail-on-empty-changeset: 1
           capabilities: CAPABILITY_NAMED_IAM
           parameter-overrides: >-
@@ -138,7 +138,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1 #https://github.com/marketplace/actions/aws-cloudformation-deploy-cloudformation-stack-action-for-github-actions
         with:
           name: evt-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
-          template: event.yml
+          template: infrastructure/event.yml
           no-fail-on-empty-changeset: 1
           parameter-overrides: >-
             pExportRolesStackName=roles-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}            
