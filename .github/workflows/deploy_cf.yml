@@ -20,7 +20,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: ${{ vars.AWS_DEFAULT_REGION }}
 
-
       # Deploy S3 Bucket
       - name: Action AWS CloudFormation "Deploy CloudFormation S3 Stack"
         if: "contains(github.event.head_commit.message, '[s3]')" #Runs if commit message contains [s3]
