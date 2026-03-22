@@ -33,6 +33,7 @@ jobs:
             pEnv=${{ vars.AWS_ENV }}
             ,pSolution=${{ vars.AWS_SOLUTION }}  
 
+
       # Deploy RDS
       - name: Action AWS CloudFormation "Deploy CloudFormation RDS Stack"
         if: "contains(github.event.head_commit.message, '[rds]')" # Runs if commit message contains [rds]
