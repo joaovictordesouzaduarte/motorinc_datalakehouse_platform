@@ -90,7 +90,7 @@ jobs:
             pEnv=${{ vars.AWS_ENV }}
             ,pSolution=${{ vars.AWS_SOLUTION }} 
       
-      
+
       # Deploy CloudFormation Athena Stack
       - name: Action AWS CloudFormation "Deploy CloudFormation Athena Stack" #in ${{ steps.branch-name-generator.outputs.BRANCH_NAME }} branch
         if: "contains(github.event.head_commit.message, '[athena]')" #Runs if commit message contains [athena]
@@ -103,7 +103,6 @@ jobs:
             pExportS3StackName=s3-cf-${{ vars.AWS_DEFAULT_REGION }}-${{ vars.AWS_ACCOUNT_ID }}-${{ vars.AWS_ENV }}-${{ vars.AWS_SOLUTION }}
             ,pEnv=${{ vars.AWS_ENV }}
             ,pSolution=${{ vars.AWS_SOLUTION }}
-      
       
       # Deploy CloudFormation IAM Users Stack
       - name: Action AWS CloudFormation "Deploy CloudFormation IAM Users Stack"
