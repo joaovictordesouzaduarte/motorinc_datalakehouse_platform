@@ -130,7 +130,8 @@ Resources:
       TargetEndpointArn: !Ref rEndpointS3
 
       ReplicationInstanceArn: !Ref rReplicationInstance
-      MigrationType: full-load-and-cdc #full-load | cdc | full-load-and-cdc > https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Task.CDC.html
+      MigrationType: cdc #full-load | cdc | full-load-and-cdc > https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Task.CDC.html
+      # MigrationType: full-load-and-cdc #full-load | cdc | full-load-and-cdc > https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Task.CDC.html
       #https://repost.aws/questions/QUnVhI5OnCRyC-yeJUfRczxw/dms-task-does-not-put-full-load-file-inside-partition-folders
       #https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Target.S3.html#CHAP_Target.S3.DatePartitioning
       #Date partitioning in full-load is not supported, so full-load-and-cdc is used instead
