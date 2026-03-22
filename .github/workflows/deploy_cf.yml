@@ -46,6 +46,7 @@ jobs:
             pEnv=${{ vars.AWS_ENV }}
             ,pSolution=${{ vars.AWS_SOLUTION }}  
              
+             
       # Deploy IAM
       - name: Action AWS CloudFormation "Deploy CloudFormation IAM Roles Stack" #in ${{ steps.branch-name-generator.outputs.BRANCH_NAME }} branch
         if: "contains(github.event.head_commit.message, '[roles]')" #Runs if commit message contains [roles]
