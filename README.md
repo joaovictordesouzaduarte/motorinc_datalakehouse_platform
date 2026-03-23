@@ -49,7 +49,7 @@ The gold layer feeds an Amazon QuickSight dashboard that visualizes sales KPIs. 
 ├── motorinc_dlh/            # dbt project (models, macros, tests)
 ├── docker/                  # Dockerfile and entrypoint for the dbt image
 ├── scripts/
-│   └── load_sales_v4.py     # Order simulator — continuously inserts orders into RDS to feed CDC
+│   └── load_sales_v4.py     # Order simulator — continuously inserts orders into RDS to feed Full Load + CDC
 └── .github/workflows/
     └── deploy_cf.yml        # CI/CD pipeline for CloudFormation deployments
 ```
