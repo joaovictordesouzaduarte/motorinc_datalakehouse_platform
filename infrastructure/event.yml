@@ -52,7 +52,7 @@ Resources:
               - subnet-04e94d118d801803f #(us-east-1b) (Replace with your default VPC subnet ID for region B)
           PlatformVersion: LATEST
           TaskCount: 1
-          TaskDefinitionArn: arn:aws:ecs:us-east-1:086997587178:task-definition/dbt-task-cf-us-east-1-086997587178-sandbox-dlh:4   
+          TaskDefinitionArn: arn:aws:ecs:us-east-1:086997587178:task-definition/dbt-task-cf-us-east-1-086997587178-sandbox-dlh  
         RetryPolicy: 
           MaximumRetryAttempts: 0
         RoleArn: !ImportValue
