@@ -47,8 +47,14 @@ The gold layer feeds an Amazon QuickSight dashboard that visualizes sales KPIs. 
 │   ├── event.yml            # EventBridge scheduler
 │   └── ecs.env              # dbt runtime env vars (gitignored)
 ├── motorinc_dlh/            # dbt project (models, macros, tests)
-├── docker/                  # Dockerfile and entrypoint for the dbt image
+├── docker/                  # dbt + Athena Docker image (ECS)
+│   ├── Dockerfile
+│   ├── requirements-dbt.txt # dbt-core + dbt-athena-community (pip)
+│   ├── profiles.yml         # Athena profile (env vars)
+│   ├── run_container.sh     # run image locally
+│   └── README.md
 ├── scripts/
+│   ├── run_dbt.sh           # bronze → silver → gold (default container CMD)
 │   └── load_sales_v4.py     # Order simulator — continuously inserts orders into RDS to feed Full Load + CDC
 └── .github/workflows/
     └── deploy_cf.yml        # CI/CD pipeline for CloudFormation deployments

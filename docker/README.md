@@ -16,6 +16,22 @@ Image that runs the **motorinc_dlh** dbt project on ECS Fargate against Athena.
 
 ---
 
+## Local install (venv; avoid PEP 668 / “externally-managed-environment”)
+
+Run from the **repository root**, not only inside `docker/`, so paths match the Dockerfile.
+
+```bash
+cd /path/to/motorinc_datalakehouse_platform
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+python -m pip install -r docker/requirements-dbt.txt
+```
+
+Use **`python -m pip`** (not bare `pip`) so you always install into the interpreter that is active. If `which pip` does not end in `.venv/bin/pip`, the venv is not active or another `pip` is first on `PATH`.
+
+---
+
 ## Build (from repository root)
 
 ```bash
