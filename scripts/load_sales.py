@@ -4,6 +4,9 @@ import time
 from datetime import datetime, timedelta
 import logging
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 # Logging configuration
 logging.basicConfig(
     level=logging.INFO,

@@ -2,6 +2,9 @@
 
 This repository implements a **data lakehouse** on AWS: transactional data is replicated from a PostgreSQL OLTP into S3, then transformed and modeled with dbt, and queried with Athena. Infrastructure is provisioned with CloudFormation and deployed via GitHub Actions.
 
+
+![Big Picture](/src/big_picture.png)
+
 ---
 
 ## Architecture
@@ -10,7 +13,7 @@ This repository implements a **data lakehouse** on AWS: transactional data is re
 
 The gold layer feeds an Amazon QuickSight dashboard that visualizes sales KPIs. The dashboard below shows total quantity ordered (24.62K) broken down by country (donut chart) and sales amount by territory and city (stacked bar chart), covering regions such as NA, Japan, EMEA, and APAC.
 
-![QuickSight Dashboard](screenshot_quicksight.png)
+![QuickSight Dashboard](/src/screenshot_quicksight.png)
 
 | Layer | Service | Description |
 |-------|---------|-------------|
@@ -46,7 +49,38 @@ The gold layer feeds an Amazon QuickSight dashboard that visualizes sales KPIs. 
 │   ├── container.yml        # ECR repository, ECS cluster and task definition
 │   ├── event.yml            # EventBridge scheduler
 │   └── ecs.env              # dbt runtime env vars (gitignored)
-├── motorinc_dlh/            # dbt project (models, macros, tests)
+├── motorinc_dlh/            # dbt project (Athena + medallion)
+│   ├── dbt_project.yml      # project config: bronze/silver/gold → Glue schemas + S3 data dirs
+│   ├── vars.yml             # dbt variables
+│   ├── README.md
+│   ├── .gitignore           # ignores dbt_packages, logs, target
+│   ├── macros/
+│   │   ├── add_raw_partition.sql      # pre-hook: ADD PARTITION for raw Hive tables
+│   │   ├── generate_schema_name.sql   # custom schema naming
+│   │   └── macro_silver_erp_location.sql
+│   ├── models/
+│   │   ├── bronze/          # Glue `raw`: register latest DMS hourly partitions
+│   │   │   ├── raw_customers_partition.sql
+│   │   │   ├── raw_employees_partition.sql
+│   │   │   ├── raw_offices_partition.sql
+│   │   │   ├── raw_orderdetails_partition.sql
+│   │   │   ├── raw_orders_partition.sql
+│   │   │   └── raw_products_partition.sql
+│   │   ├── silver/          # Iceberg `ods`: deduped staging (stg_*)
+│   │   │   ├── stg_customers.sql
+│   │   │   ├── stg_employees.sql
+│   │   │   ├── stg_offices.sql
+│   │   │   ├── stg_orderdetails.sql
+│   │   │   ├── stg_orders.sql
+│   │   │   └── stg_products.sql
+│   │   └── gold/            # Iceberg `dwh`: business aggregates
+│   │       └── load_sales_dataset.sql
+│   ├── analyses/            # ad-hoc analyses (empty; .gitkeep)
+│   ├── seeds/               # CSV seeds (empty; .gitkeep)
+│   ├── snapshots/           # SCD snapshots (empty; .gitkeep)
+│   ├── tests/               # data tests (empty; .gitkeep)
+│   ├── logs/                # dbt logs (generated)
+│   └── target/              # compiled SQL, manifest (generated; gitignored)
 ├── docker/                  # dbt + Athena Docker image (ECS)
 │   ├── Dockerfile
 │   ├── requirements-dbt.txt # dbt-core + dbt-athena-community (pip)
@@ -55,7 +89,7 @@ The gold layer feeds an Amazon QuickSight dashboard that visualizes sales KPIs. 
 │   └── README.md
 ├── scripts/
 │   ├── run_dbt.sh           # bronze → silver → gold (default container CMD)
-│   └── load_sales_v4.py     # Order simulator — continuously inserts orders into RDS to feed Full Load + CDC
+│   └── load_sales.py        # Order simulator — continuously inserts orders into RDS to feed Full Load + CDC
 └── .github/workflows/
     └── deploy_cf.yml        # CI/CD pipeline for CloudFormation deployments
 ```
@@ -82,7 +116,21 @@ git commit -m "update bucket lifecycle [s3]"
 | `[container]` | ECR + ECS cluster + task definition |
 | `[event]` | EventBridge scheduler |
 
-> **Deploy order matters:** `s3` → `rds` → `roles` → `dms` → `glue` → `athena` → `users` → `container` → `event`
+> **Deploy order matters (recommended):** `s3` → `rds` → `roles` → `athena` → `users` → `glue` → `dms` → `container` (ecs) → `event` bridge
+
+Example de deploy por tag (um commit por stack):
+
+```
+git commit -m "deploy s3 [s3]"
+git commit -m "deploy rds [rds]"
+git commit -m "deploy roles [roles]"
+git commit -m "deploy athena [athena]"
+git commit -m "deploy users [users]"
+git commit -m "deploy glue [glue]"
+git commit -m "deploy dms [dms]"
+git commit -m "deploy container (ecs/ecr) [container]"
+git commit -m "deploy event bridge [event]"
+```
 
 Required GitHub secrets/variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_KEY_ID`, `AWS_DEFAULT_REGION`, `AWS_ACCOUNT_ID`, `AWS_ENV`, `AWS_SOLUTION`.
 
@@ -90,7 +138,7 @@ Required GitHub secrets/variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_KEY_ID`, `AW
 
 ## How the pipeline runs
 
-1. **Order simulator** (`scripts/load_sales_v4.py`) inserts random orders into RDS continuously, generating CDC events.
+1. **Order simulator** (`scripts/load_sales.py`) inserts random orders into RDS continuously, generating CDC events.
 2. **DMS** captures changes and writes Parquet files to the bronze S3 bucket, partitioned by hour.
 3. **EventBridge** triggers the ECS Fargate task every 15 minutes.
 4. **dbt** runs three steps:
@@ -98,3 +146,47 @@ Required GitHub secrets/variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_KEY_ID`, `AW
    - **Silver** — deduplicates and merges rows into Iceberg `ods` tables.
    - **Gold** — aggregates silver tables into `dwh` datasets.
 5. **Athena** queries `raw`, `ods`, and `dwh` at any point for reporting or ad-hoc analysis.
+
+---
+
+## Docker Image Deployment (ECR)
+
+If the Docker image is not yet available in ECR, you must build and push it before the ECS task can run. This step is required after modifying the Dockerfile or requirements.
+
+### Steps to build and push
+
+1. **Authenticate Docker to ECR**:
+   ```bash
+   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+   ```
+
+2. **Create the ECR repository (if it doesn't exist)**:
+   ```bash
+   aws ecr create-repository --repository-name motorinc-datalakehouse --region us-east-1
+   ```
+
+3. **Build the Docker image**:
+   ```bash
+   cd docker
+   docker build -t motorinc-datalakehouse .
+   ```
+
+4. **Tag the image**:
+   ```bash
+   docker tag motorinc-datalakehouse:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/motorinc-datalakehouse:latest
+   ```
+
+5. **Push to ECR**:
+   ```bash
+   docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/motorinc-datalakehouse:latest
+   ```
+
+### Local testing
+
+To run the container locally:
+```bash
+cd docker
+./run_container.sh
+```
+
+> **Note**: Ensure the `.env` file is present in the project root with valid AWS credentials before running locally.
