@@ -7,6 +7,10 @@ This repository implements a **data lakehouse** on AWS: transactional data is re
 
 ---
 
+## VIDEO
+
+https://www.loom.com/share/e73e225458564c059047a5fb7884d973
+
 ## Architecture
 
 ### QuickSight Dashboard

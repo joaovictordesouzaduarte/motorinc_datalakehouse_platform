@@ -215,7 +215,7 @@ def run_order_generator():
             
             if success:
                 # Waits a random time between 20 and 60 seconds
-                wait_time = random.randint(20, 60)
+                wait_time = random.randint(15, 30)
                 logger.info(f"Waiting {wait_time} seconds until the next order...")
                 time.sleep(wait_time)
             else:
